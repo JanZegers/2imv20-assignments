@@ -61,7 +61,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         tFunc = new TransferFunction(volume.getMinimum(), volume.getMaximum());
 
         // uncomment this to initialize the TF with good starting values for the orange dataset 
-        //tFunc.setTestFunc();
+        tFunc.setTestFunc();
         tFunc.addTFChangeListener(this);
         tfEditor = new TransferFunctionEditor(tFunc, volume.getHistogram());
 
@@ -251,6 +251,90 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 }
 
                 // Map the intensity to a grey value by linear scaling
+                voxelColor.r = rayMax / max;
+                voxelColor.g = voxelColor.r;
+                voxelColor.b = voxelColor.r;
+                voxelColor.a = rayMax > 0 ? 1.0 : 0.0;  // this makes intensity 0 completely transparent and the rest opaque
+                // Alternatively, apply the transfer function to obtain a color
+                //TransferFunction;
+                //TransferFunction kleurtjes = new TransferFunction((short)1.0,(short)10);
+                //int pixelColor = (int) kleurtjes.getColor((int)rayMax);
+                
+                            
+                // BufferedImage expects a pixel color packed as ARGB in an int
+                int c_alpha = voxelColor.a <= 1.0 ? (int) Math.floor(voxelColor.a * 255) : 255;
+                int c_red = voxelColor.r <= 1.0 ? (int) Math.floor(voxelColor.r * 255) : 255;
+                int c_green = voxelColor.g <= 1.0 ? (int) Math.floor(voxelColor.g * 255) : 255;
+                int c_blue = voxelColor.b <= 1.0 ? (int) Math.floor(voxelColor.b * 255) : 255;
+                int pixelColor = (c_alpha << 24) | (c_red << 16) | (c_green << 8) | c_blue;
+
+                // make multiple pixels the same color for the sake of lower resolution
+                for (int jPixel = 0; jPixel < resolution; jPixel++) {
+                    for (int iPixel = 0; iPixel < resolution; iPixel++) {
+                        image.setRGB(i + iPixel, j + jPixel, pixelColor);
+                    }
+                }
+            }
+        }
+    }
+    void compositing(double[] viewMatrix) {
+
+        // clear image
+        for (int j = 0; j < image.getHeight(); j++) {
+            for (int i = 0; i < image.getWidth(); i++) {
+                image.setRGB(i, j, 0);
+            }
+        }
+
+        // vector uVec and vVec define a plane through the origin, 
+        // perpendicular to the view vector viewVec
+        double[] viewVec = new double[3];
+        double[] uVec = new double[3];
+        double[] vVec = new double[3];
+        VectorMath.setVector(viewVec, viewMatrix[2], viewMatrix[6], viewMatrix[10]);
+        VectorMath.setVector(uVec, viewMatrix[0], viewMatrix[4], viewMatrix[8]);
+        VectorMath.setVector(vVec, viewMatrix[1], viewMatrix[5], viewMatrix[9]);
+
+        // image is square
+        int imageCenter = image.getWidth() / 2;
+
+        double[] pixelCoord = new double[3];
+        double[] volumeCenter = new double[3];
+        VectorMath.setVector(volumeCenter, volume.getDimX() / 2, volume.getDimY() / 2, volume.getDimZ() / 2);
+
+        // sample on a plane through the origin of the volume data
+        double max = volume.getMaximum();
+        TFColor voxelColor = new TFColor();
+
+        // higher resolution leads to lower quality but better performance 
+        int resolution = 1; // the number to the power of 2 of pixels treated as one
+        double rayResolution = 1; // stepsize of t in raycast
+
+        for (int j = 0; j < image.getHeight() - resolution + 1; j += resolution) {
+            for (int i = 0; i < image.getWidth() - resolution + 1; i += resolution) {
+                // calculate minimum length of half ray
+                double halfRay = Math.sqrt(Math.sqrt(Math.pow(volume.getDimX(), 2)
+                        + Math.pow(volume.getDimY(), 2))
+                        + Math.pow(volume.getDimZ(), 2));
+                // find maximum value along array
+                int rayMax = 0;
+                for (double t = -halfRay; t < halfRay; t += rayResolution) {
+                    pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
+                            + viewVec[0] * (t - imageCenter) + volumeCenter[0];
+                    pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
+                            + viewVec[1] * (t - imageCenter) + volumeCenter[1];
+                    pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
+                            + viewVec[2] * (t - imageCenter) + volumeCenter[2];
+
+                    int val = getVoxelInterpolated(pixelCoord);
+                    if (val > rayMax) {
+                        rayMax = val;
+                    }
+                    
+                    voxelColor = tFunc.getColor(val);
+                }
+
+                // Map the intensity to a grey value by linear scaling
                 //voxelColor.r = rayMax / max;
                 //voxelColor.g = voxelColor.r;
                 //voxelColor.b = voxelColor.r;
@@ -358,7 +442,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 mip(viewMatrix);
                 break;
             case COMPOSITING:
-                // TODO
+                compositing(viewMatrix);
                 break;
             case TFUNC_2D:
                 // TODO
