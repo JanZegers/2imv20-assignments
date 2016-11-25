@@ -6,6 +6,7 @@ package gui;
 
 import javax.swing.JOptionPane;
 import volvis.RaycastRenderer;
+import volvis.RenderType;
 
 /**
  *
@@ -16,7 +17,7 @@ public class RaycastRendererPanel extends javax.swing.JPanel {
     RaycastRenderer renderer;
     TransferFunctionEditor tfEditor = null;
     TransferFunction2DEditor tfEditor2D = null;
-    
+
     /**
      * Creates new form RaycastRendererPanel
      */
@@ -28,8 +29,7 @@ public class RaycastRendererPanel extends javax.swing.JPanel {
     public void setSpeedLabel(String text) {
         renderingSpeedLabel.setText(text);
     }
-    
-    
+
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -133,19 +133,23 @@ public class RaycastRendererPanel extends javax.swing.JPanel {
     }// </editor-fold>//GEN-END:initComponents
 
     private void mipButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mipButtonActionPerformed
-        JOptionPane.showMessageDialog(this, "Not implemented.");
+        renderer.setRenderType(RenderType.MIP);
+        renderer.changed();
     }//GEN-LAST:event_mipButtonActionPerformed
 
     private void slicerButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_slicerButtonActionPerformed
-        
+        renderer.setRenderType(RenderType.SLICER);
+        renderer.changed();
     }//GEN-LAST:event_slicerButtonActionPerformed
 
     private void compositingButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_compositingButtonActionPerformed
-        JOptionPane.showMessageDialog(this, "Not implemented.");
+        renderer.setRenderType(RenderType.COMPOSITING);
+        renderer.changed();
     }//GEN-LAST:event_compositingButtonActionPerformed
 
     private void tf2dButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tf2dButtonActionPerformed
-        JOptionPane.showMessageDialog(this, "Not implemented.");
+        renderer.setRenderType(RenderType.TFUNC_2D);
+        renderer.changed();
     }//GEN-LAST:event_tf2dButtonActionPerformed
 
     private void shadingCheckboxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_shadingCheckboxActionPerformed
