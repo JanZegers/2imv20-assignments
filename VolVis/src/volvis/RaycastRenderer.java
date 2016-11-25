@@ -247,7 +247,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                         rayMax = val;
                     }
                     
-                    voxelColor = tFunc.getColor(val);
+                    //voxelColor = tFunc.getColor(val);
                 }
 
                 // Map the intensity to a grey value by linear scaling
