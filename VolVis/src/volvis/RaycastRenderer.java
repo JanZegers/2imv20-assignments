@@ -238,19 +238,19 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
         for (int j = 0; j < image.getHeight() - resolution + 1; j += resolution) {
             for (int i = 0; i < image.getWidth() - resolution + 1; i += resolution) {
-                // calculate minimum length of half ray
-                double halfRay = Math.sqrt(Math.sqrt(Math.pow(volume.getDimX(), 2)
-                        + Math.pow(volume.getDimY(), 2))
+                // calculate size of ray
+                double raySize = Math.sqrt(Math.pow(volume.getDimX(), 2)
+                        + Math.pow(volume.getDimY(), 2)
                         + Math.pow(volume.getDimZ(), 2));
                 // find maximum value along array
                 int rayMax = 0;
-                for (double t = -halfRay; t < halfRay; t += rayResolution) {
+                for (double t = -0.5 * raySize; t < 0.5 * raySize; t += rayResolution) {
                     pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
-                            + viewVec[0] * (t - imageCenter) + volumeCenter[0];
+                            + viewVec[0] * t + volumeCenter[0];
                     pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
-                            + viewVec[1] * (t - imageCenter) + volumeCenter[1];
+                            + viewVec[1] * t + volumeCenter[1];
                     pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
-                            + viewVec[2] * (t - imageCenter) + volumeCenter[2];
+                            + viewVec[2] * t + volumeCenter[2];
 
                     int val = getVoxelInterpolated(pixelCoord);
                     if (val > rayMax) {
@@ -328,20 +328,20 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
         for (int j = 0; j < image.getHeight() - resolution + 1; j += resolution) {
             for (int i = 0; i < image.getWidth() - resolution + 1; i += resolution) {
-                // calculate minimum length of half ray
-                double halfRay = Math.sqrt(Math.sqrt(Math.pow(volume.getDimX(), 2)
-                        + Math.pow(volume.getDimY(), 2))
+                // calculate size of ray
+                double raySize = Math.sqrt(Math.pow(volume.getDimX(), 2)
+                        + Math.pow(volume.getDimY(), 2)
                         + Math.pow(volume.getDimZ(), 2));
                 color.r = color.g = color.b = 0.0;
                 color.a = 1.0;
                 int val;
-                for (double t = -halfRay; t < halfRay; t += rayResolution) {
+                for (double t = -0.5 * raySize; t < 0.5 * raySize; t += rayResolution) {
                     pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
-                            + viewVec[0] * (t - imageCenter) + volumeCenter[0];
+                            + viewVec[0] * t + volumeCenter[0];
                     pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
-                            + viewVec[1] * (t - imageCenter) + volumeCenter[1];
+                            + viewVec[1] * t + volumeCenter[1];
                     pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
-                            + viewVec[2] * (t - imageCenter) + volumeCenter[2];
+                            + viewVec[2] * t + volumeCenter[2];
 
                     val = getVoxelInterpolated(pixelCoord);
                     voxelColor = tFunc.getColor(val);
@@ -363,9 +363,16 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 int pixelColor = (c_alpha << 24) | (c_red << 16) | (c_green << 8) | c_blue;
 
                 // make multiple pixels the same color for the sake of lower resolution
-                for (int jPixel = 0; jPixel < resolution; jPixel++) {
-                    for (int iPixel = 0; iPixel < resolution; iPixel++) {
-                        image.setRGB(i + iPixel, j + jPixel, pixelColor);
+                if (resolution == 1) {
+                    image.setRGB(i, j, pixelColor);
+                } else if (resolution == 3) {
+                    for (int jPixel = -1; jPixel < 2; jPixel++) {
+                        for (int iPixel = -1; iPixel < 2; iPixel++) {
+                            if (i + iPixel >= 0 && i + iPixel < image.getWidth()
+                                    && j + jPixel >= 0 && j + jPixel < image.getHeight()) {
+                                image.setRGB(i + iPixel, j + jPixel, pixelColor);
+                            }
+                        }
                     }
                 }
             }
