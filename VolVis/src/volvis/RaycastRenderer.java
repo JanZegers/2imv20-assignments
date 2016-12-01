@@ -166,7 +166,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         if (gradientMagnitude > 0
                 && voxelIntensity - radius * gradientMagnitude <= baseIntensity
                 && baseIntensity <= voxelIntensity + radius * gradientMagnitude) {
-            return 1 - (1 / radius) * ((baseIntensity - voxelIntensity) / gradientMagnitude);
+            return 1 - (1 / radius) * Math.abs(((Math.abs(baseIntensity - voxelIntensity)) / Math.abs(gradientMagnitude)));
         }
         return 0;
     }
