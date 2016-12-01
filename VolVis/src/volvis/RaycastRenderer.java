@@ -18,6 +18,7 @@ import util.TFChangeListener;
 import util.VectorMath;
 import volume.GradientVolume;
 import volume.Volume;
+import volume.VoxelGradient;
 
 /**
  *
@@ -25,7 +26,6 @@ import volume.Volume;
  */
 public class RaycastRenderer extends Renderer implements TFChangeListener {
 
-    private RenderType renderType = RenderType.SLICER;
     private Timer timer;
     public boolean highRes = false;
 
@@ -40,10 +40,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         panel = new RaycastRendererPanel(this);
         panel.setSpeedLabel("0");
         this.timer = new Timer();
-    }
-
-    public void setRenderType(RenderType renderType) {
-        this.renderType = renderType;
     }
 
     public void setVolume(Volume vol) {
@@ -102,6 +98,37 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         return volume.getVoxel(x, y, z);
     }
 
+    double getGradientMagnitude(double[] coord) {
+
+        if (coord[0] < 0 || coord[0] > volume.getDimX() - 1 || coord[1] < 0 || coord[1] > volume.getDimY() - 1
+                || coord[2] < 0 || coord[2] > volume.getDimZ() - 1) {
+            return 0;
+        }
+
+        int x = (int) Math.floor(coord[0]);
+        int y = (int) Math.floor(coord[1]);
+        int z = (int) Math.floor(coord[2]);
+
+        return gradients.getGradient(x, y, z).mag;
+    }
+
+    double getAlpha(double[] coord) {
+        double intensity = this.tfEditor2D.triangleWidget.baseIntensity;
+        double radius = this.tfEditor2D.triangleWidget.radius;
+        double gradientMagnitude = this.getGradientMagnitude(coord);
+        double voxel = this.getVoxelInterpolated(coord);
+
+        if (gradientMagnitude == 0 && voxel == intensity) {
+            return 1;
+        }
+        if (gradientMagnitude > 0
+                && voxel - radius * gradientMagnitude < intensity
+                && intensity < voxel + radius * gradientMagnitude) {
+            return 1 - (1 / radius) * (intensity - voxel) / gradientMagnitude;
+        }
+        return 0;
+    }
+
     short getVoxelInterpolated(double[] coord) {
 
         if (coord[0] < 0 || coord[0] > volume.getDimX() || coord[1] < 0 || coord[1] > volume.getDimY()
@@ -112,6 +139,12 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         double x = coord[0];
         double y = coord[1];
         double z = coord[2];
+
+        if (x > volume.getDimX() - 2
+                || y > volume.getDimY() - 2
+                || z > volume.getDimZ() - 2) {
+            return 0;
+        }
 
         int x0 = (int) Math.floor(x);
         int y0 = (int) Math.floor(y);
@@ -386,6 +419,147 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         }
     }
 
+    void gradient(double[] viewMatrix, boolean highRes) {
+
+        // clear image
+        for (int j = 0; j < image.getHeight(); j++) {
+            for (int i = 0; i < image.getWidth(); i++) {
+                image.setRGB(i, j, 0);
+            }
+        }
+
+        // vector uVec and vVec define a plane through the origin, 
+        // perpendicular to the view vector viewVec
+        double[] viewVec = new double[3];
+        double[] uVec = new double[3];
+        double[] vVec = new double[3];
+        VectorMath.setVector(viewVec, viewMatrix[2], viewMatrix[6], viewMatrix[10]);
+        VectorMath.setVector(uVec, viewMatrix[0], viewMatrix[4], viewMatrix[8]);
+        VectorMath.setVector(vVec, viewMatrix[1], viewMatrix[5], viewMatrix[9]);
+
+        // image is square
+        int imageCenter = image.getWidth() / 2;
+
+        double[] pixelCoord = new double[3];
+        double[] volumeCenter = new double[3];
+        VectorMath.setVector(volumeCenter, volume.getDimX() / 2, volume.getDimY() / 2, volume.getDimZ() / 2);
+
+        // sample on a plane through the origin of the volume data
+        double max = volume.getMaximum();
+        TFColor color = new TFColor();
+        TFColor voxelColor = new TFColor();
+
+        // higher resolution leads to lower quality but better performance 
+        int resolution; // the number to the power of 2 of pixels treated as one
+        if (highRes) {
+            resolution = 1;
+        } else {
+            resolution = 3;
+        }
+        double rayResolution = 1; // stepsize of t in raycast
+
+        for (int j = 0; j < image.getHeight() - resolution + 1; j += resolution) {
+            for (int i = 0; i < image.getWidth() - resolution + 1; i += resolution) {
+                // calculate size of ray
+                double raySize = Math.sqrt(Math.pow(volume.getDimX(), 2)
+                        + Math.pow(volume.getDimY(), 2)
+                        + Math.pow(volume.getDimZ(), 2));
+                color.r = color.g = color.b = 0.0;
+                color.a = 1.0;
+                for (double t = -0.5 * raySize; t < 0.5 * raySize; t += rayResolution) {
+                    pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
+                            + viewVec[0] * t + volumeCenter[0];
+                    pixelCoord[1] = uVec[1] * (i - imageCenter) + vVec[1] * (j - imageCenter)
+                            + viewVec[1] * t + volumeCenter[1];
+                    pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
+                            + viewVec[2] * t + volumeCenter[2];
+
+                    voxelColor = this.tfEditor2D.triangleWidget.color;
+                    double alpha = this.getAlpha(pixelCoord);
+                    color.r = alpha * voxelColor.r + (1 - alpha) * color.r;
+                    color.g = alpha * voxelColor.g + (1 - alpha) * color.g;
+                    color.b = alpha * voxelColor.b + (1 - alpha) * color.b;
+                }
+
+                // Make transparent if no color
+                if (color.r + color.g + color.b == 0.0) {
+                    color.a = 0.0;
+                }
+
+                double shade;
+                if (panel.shade) {
+                    shade = getShade(viewMatrix, pixelCoord);
+                } else {
+                    shade = 1.0;
+                }
+
+                double color_r = color.r * shade;
+                double color_g = color.g * shade;
+                double color_b = color.b * shade;
+
+                // BufferedImage expects a pixel color packed as ARGB in an int
+                int c_alpha = color.a <= 1.0 ? (int) Math.floor(color.a * 255) : 255;
+                int c_red = color.r <= 1.0 ? (int) Math.floor(color_r * 255) : 255;
+                int c_green = color.g <= 1.0 ? (int) Math.floor(color_g * 255) : 255;
+                int c_blue = color.b <= 1.0 ? (int) Math.floor(color_b * 255) : 255;
+                int pixelColor = (c_alpha << 24) | (c_red << 16) | (c_green << 8) | c_blue;
+
+                // make multiple pixels the same color for the sake of lower resolution
+                if (resolution == 1) {
+                    image.setRGB(i, j, pixelColor);
+                } else if (resolution == 3) {
+                    for (int jPixel = -1; jPixel < 2; jPixel++) {
+                        for (int iPixel = -1; iPixel < 2; iPixel++) {
+                            if (i + iPixel >= 0 && i + iPixel < image.getWidth()
+                                    && j + jPixel >= 0 && j + jPixel < image.getHeight()) {
+                                image.setRGB(i + iPixel, j + jPixel, pixelColor);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public double getShade(double[] viewMatrix, double[] coord) {
+        if (coord[0] < 0 || coord[0] > volume.getDimX() || coord[1] < 0 || coord[1] > volume.getDimY()
+                || coord[2] < 0 || coord[2] > volume.getDimZ()) {
+            return 0;
+        }
+
+        int x = (int) Math.floor(coord[0]);
+        int y = (int) Math.floor(coord[1]);
+        int z = (int) Math.floor(coord[2]);
+
+        double[] N = new double[3];
+        VoxelGradient gradient = gradients.getGradient(x, y, z);
+        VectorMath.setVector(N, -gradient.x / gradient.mag, -gradient.y / gradient.mag, -gradient.z / gradient.mag);
+
+        double[] V = new double[3];
+        VectorMath.setVector(V, -viewMatrix[2], -viewMatrix[6], -viewMatrix[10]);
+        double VLength = VectorMath.length(V);
+
+        double[] L = new double[3];
+        VectorMath.setVector(L, V[0] / VLength, V[1] / VLength, V[2] / VLength);
+
+        double[] H = new double[3];
+        VectorMath.setVector(H, V[0] / VLength, V[1] / VLength, V[2] / VLength);
+
+        double iAmb = 1;
+        double kAmb = 0.1;
+        double iDiff = 1;
+        double kDiff = 0.7;
+        double kSpec = 0.2;
+        double alpha = 10;
+
+        double shade = iAmb * kAmb + iDiff * kDiff * (VectorMath.dotproduct(N, L)) + kSpec * Math.pow(VectorMath.dotproduct(N, H), alpha);
+        if (shade > 0) {
+            return shade;
+        } else {
+            return 0;
+        }
+    }
+
     private void drawBoundingBox(GL2 gl) {
         gl.glPushAttrib(GL2.GL_CURRENT_BIT);
         gl.glDisable(GL2.GL_LIGHTING);
@@ -458,7 +632,8 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
         long startTime = System.currentTimeMillis();
 
-        switch (this.renderType) {
+        RenderType renderType = panel.renderType;
+        switch (renderType) {
             case SLICER:
                 slicer(viewMatrix);
                 break;
@@ -469,7 +644,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 compositing(viewMatrix, this.highRes);
                 break;
             case TFUNC_2D:
-                // TODO
+                gradient(viewMatrix, this.highRes);
                 break;
         }
 
@@ -511,7 +686,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
             System.out.println("some OpenGL error: " + gl.glGetError());
         }
 
-        if (!this.highRes && (this.renderType == RenderType.MIP || this.renderType == RenderType.COMPOSITING)) {
+        if (!this.highRes && (renderType == RenderType.MIP || renderType == RenderType.COMPOSITING || renderType == RenderType.TFUNC_2D)) {
             this.timer.cancel();
             this.timer = new Timer();
             timer.schedule(new RevisualizeTask(this), 1000);

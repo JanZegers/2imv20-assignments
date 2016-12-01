@@ -17,6 +17,9 @@ public class RaycastRendererPanel extends javax.swing.JPanel {
     RaycastRenderer renderer;
     TransferFunctionEditor tfEditor = null;
     TransferFunction2DEditor tfEditor2D = null;
+    
+    public RenderType renderType;
+    public boolean shade;
 
     /**
      * Creates new form RaycastRendererPanel
@@ -24,6 +27,8 @@ public class RaycastRendererPanel extends javax.swing.JPanel {
     public RaycastRendererPanel(RaycastRenderer renderer) {
         initComponents();
         this.renderer = renderer;
+        this.renderType = RenderType.MIP;
+        this.shade = false;
     }
 
     public void setSpeedLabel(String text) {
@@ -133,27 +138,31 @@ public class RaycastRendererPanel extends javax.swing.JPanel {
     }// </editor-fold>//GEN-END:initComponents
 
     private void mipButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mipButtonActionPerformed
-        renderer.setRenderType(RenderType.MIP);
+        renderType = RenderType.MIP;
         renderer.changed();
     }//GEN-LAST:event_mipButtonActionPerformed
 
     private void slicerButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_slicerButtonActionPerformed
-        renderer.setRenderType(RenderType.SLICER);
+        renderType = RenderType.SLICER;
         renderer.changed();
     }//GEN-LAST:event_slicerButtonActionPerformed
 
     private void compositingButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_compositingButtonActionPerformed
-        renderer.setRenderType(RenderType.COMPOSITING);
+        renderType = RenderType.COMPOSITING;
         renderer.changed();
     }//GEN-LAST:event_compositingButtonActionPerformed
 
     private void tf2dButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tf2dButtonActionPerformed
-        renderer.setRenderType(RenderType.TFUNC_2D);
+        renderType = RenderType.TFUNC_2D;
         renderer.changed();
     }//GEN-LAST:event_tf2dButtonActionPerformed
 
     private void shadingCheckboxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_shadingCheckboxActionPerformed
-        JOptionPane.showMessageDialog(this, "Not implemented.");
+        if (shade)
+            shade = false;
+        else
+            shade = true;
+        renderer.changed();
     }//GEN-LAST:event_shadingCheckboxActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

@@ -50,11 +50,32 @@ public class GradientVolume {
     }
 
     private void compute() {
+        
+        // TODO
+        for (int x = 0; x < volume.getDimX(); x ++) {
+            for (int y = 0; y < volume.getDimY(); y++) {
+                for (int z = 0; z < volume.getDimZ(); z++) {
+                    VoxelGradient gradient;
+                    if (x == 0 || x == volume.getDimX() - 1 
+                            || y == 0 || y == volume.getDimY() - 1
+                            || z == 0 || z == volume.getDimZ() - 1) {
+                        gradient = new VoxelGradient(0, 0, 0);
+                    } else {
+                        gradient = new VoxelGradient(
+                               0.5f * (volume.getVoxel(x + 1, y, z) - volume.getVoxel(x - 1, y, z))
+                               , 0.5f * (volume.getVoxel(x, y + 1,z) - volume.getVoxel(x, y - 1, z))
+                               , 0.5f * (volume.getVoxel(x, y, z + 1) - volume.getVoxel(x, y, z - 1))
+                       );
+                    }
+                    this.setGradient(x, y, z, gradient);
+                }
+            }
+        }
 
         // this just initializes all gradients to the vector (0,0,0)
-        for (int i=0; i<data.length; i++) {
-            data[i] = zero;
-        }
+//        for (int i=0; i<data.length; i++) {
+//            data[i] = zero;
+//        }
                 
     }
     
