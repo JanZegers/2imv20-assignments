@@ -111,20 +111,62 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
         return gradients.getGradient(x, y, z).mag;
     }
+    
+    double getGradientMagnitudeInterpolated(double[] coord) {
+
+        if (coord[0] < 0 || coord[0] > volume.getDimX() - 1 || coord[1] < 0 || coord[1] > volume.getDimY() - 1
+                || coord[2] < 0 || coord[2] > volume.getDimZ() - 1) {
+            return 0;
+        }
+
+        int x = (int) Math.floor(coord[0]);
+        int y = (int) Math.floor(coord[1]);
+        int z = (int) Math.floor(coord[2]);
+
+        if (x > volume.getDimX() - 2
+                || y > volume.getDimY() - 2
+                || z > volume.getDimZ() - 2) {
+            return 0;
+        }
+
+        int x0 = (int) Math.floor(x);
+        int y0 = (int) Math.floor(y);
+        int z0 = (int) Math.floor(z);
+
+        // Math.min used to prevent ArrayIndexOutOfBoundsException
+        int x1 = (int) Math.min(Math.ceil(x), volume.getDimX() - 1);
+        int y1 = (int) Math.min(Math.ceil(y), volume.getDimY() - 1);
+        int z1 = (int) Math.min(Math.ceil(z), volume.getDimZ() - 1);
+
+        double alpha = x - x0;
+        double beta = y - y0;
+        double gamma = z - z0;
+
+        short v = (short) ((1 - alpha) * (1 - beta) * (1 - gamma) * gradients.getGradient(x0, y0, z0).mag
+                + alpha * (1 - beta) * (1 - gamma) * gradients.getGradient(x1, y0, z0).mag
+                + (1 - alpha) * beta * (1 - gamma) * gradients.getGradient(x0, y1, z0).mag
+                + alpha * beta * (1 - gamma) * gradients.getGradient(x1, y1, z0).mag
+                + (1 - alpha) * (1 - beta) * gamma * gradients.getGradient(x0, y0, z1).mag
+                + alpha * (1 - beta) * gamma * gradients.getGradient(x1, y0, z1).mag
+                + (1 - alpha) * beta * gamma * gradients.getGradient(x0, y1, z1).mag
+                + alpha * beta * gamma * gradients.getGradient(x1, y1, z1).mag);
+
+        return v;
+    }
 
     double getAlpha(double[] coord) {
-        double intensity = this.tfEditor2D.triangleWidget.baseIntensity;
+        double baseIntensity = this.tfEditor2D.triangleWidget.baseIntensity;
         double radius = this.tfEditor2D.triangleWidget.radius;
-        double gradientMagnitude = this.getGradientMagnitude(coord);
-        double voxel = this.getVoxelInterpolated(coord);
+        double gradientMagnitude = this.getGradientMagnitudeInterpolated(coord);
+        double voxelIntensity = this.getVoxelInterpolated(coord);
 
-        if (gradientMagnitude == 0 && voxel == intensity) {
+        if (gradientMagnitude == 0 && voxelIntensity == baseIntensity) {
             return 1;
         }
         if (gradientMagnitude > 0
-                && voxel - radius * gradientMagnitude < intensity
-                && intensity < voxel + radius * gradientMagnitude) {
-            return 1 - (1 / radius) * (intensity - voxel) / gradientMagnitude;
+                && voxelIntensity - radius * gradientMagnitude <= baseIntensity
+                && baseIntensity <= voxelIntensity + radius * gradientMagnitude) {
+            return 1 - (1 / radius) * ((baseIntensity - voxelIntensity) / gradientMagnitude);
         }
         return 0;
     }
@@ -445,7 +487,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         VectorMath.setVector(volumeCenter, volume.getDimX() / 2, volume.getDimY() / 2, volume.getDimZ() / 2);
 
         // sample on a plane through the origin of the volume data
-        double max = volume.getMaximum();
         TFColor color = new TFColor();
         TFColor voxelColor = new TFColor();
 
@@ -476,9 +517,17 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
 
                     voxelColor = this.tfEditor2D.triangleWidget.color;
                     double alpha = this.getAlpha(pixelCoord);
-                    color.r = alpha * voxelColor.r + (1 - alpha) * color.r;
-                    color.g = alpha * voxelColor.g + (1 - alpha) * color.g;
-                    color.b = alpha * voxelColor.b + (1 - alpha) * color.b;
+                    
+                    double shade;
+                    if (panel.shade) {
+                        shade = getShade(viewMatrix, pixelCoord);
+                    } else {
+                        shade = 1.0;
+                    }
+                
+                    color.r = alpha * voxelColor.r * shade + (1 - alpha) * color.r;
+                    color.g = alpha * voxelColor.g * shade + (1 - alpha) * color.g;
+                    color.b = alpha * voxelColor.b * shade + (1 - alpha) * color.b;
                 }
 
                 // Make transparent if no color
@@ -486,22 +535,11 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                     color.a = 0.0;
                 }
 
-                double shade;
-                if (panel.shade) {
-                    shade = getShade(viewMatrix, pixelCoord);
-                } else {
-                    shade = 1.0;
-                }
-
-                double color_r = color.r * shade;
-                double color_g = color.g * shade;
-                double color_b = color.b * shade;
-
                 // BufferedImage expects a pixel color packed as ARGB in an int
                 int c_alpha = color.a <= 1.0 ? (int) Math.floor(color.a * 255) : 255;
-                int c_red = color.r <= 1.0 ? (int) Math.floor(color_r * 255) : 255;
-                int c_green = color.g <= 1.0 ? (int) Math.floor(color_g * 255) : 255;
-                int c_blue = color.b <= 1.0 ? (int) Math.floor(color_b * 255) : 255;
+                int c_red = color.r <= 1.0 ? (int) Math.floor(color.r * 255) : 255;
+                int c_green = color.g <= 1.0 ? (int) Math.floor(color.g * 255) : 255;
+                int c_blue = color.b <= 1.0 ? (int) Math.floor(color.b * 255) : 255;
                 int pixelColor = (c_alpha << 24) | (c_red << 16) | (c_green << 8) | c_blue;
 
                 // make multiple pixels the same color for the sake of lower resolution
@@ -522,8 +560,8 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     }
 
     public double getShade(double[] viewMatrix, double[] coord) {
-        if (coord[0] < 0 || coord[0] > volume.getDimX() || coord[1] < 0 || coord[1] > volume.getDimY()
-                || coord[2] < 0 || coord[2] > volume.getDimZ()) {
+        if (coord[0] < 0 || coord[0] > volume.getDimX() - 1|| coord[1] < 0 || coord[1] > volume.getDimY() - 1
+                || coord[2] < 0 || coord[2] > volume.getDimZ() - 1) {
             return 0;
         }
 
@@ -552,12 +590,18 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         double kSpec = 0.2;
         double alpha = 10;
 
-        double shade = iAmb * kAmb + iDiff * kDiff * (VectorMath.dotproduct(N, L)) + kSpec * Math.pow(VectorMath.dotproduct(N, H), alpha);
-        if (shade > 0) {
-            return shade;
-        } else {
-            return 0;
-        }
+        double shade = 0;
+        double ambTerm = iAmb * kAmb;
+        if (ambTerm > 0)
+            shade += ambTerm;
+        double diffTerm = iDiff * kDiff * (VectorMath.dotproduct(N, L));
+        if (diffTerm > 0)
+            shade += diffTerm;        
+        double specTerm = kSpec * Math.pow(VectorMath.dotproduct(N, H), alpha);
+        if (specTerm > 0)
+            shade += specTerm;
+        
+        return shade;
     }
 
     private void drawBoundingBox(GL2 gl) {

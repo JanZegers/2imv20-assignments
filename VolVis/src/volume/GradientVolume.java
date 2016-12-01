@@ -63,7 +63,7 @@ public class GradientVolume {
                     } else {
                         gradient = new VoxelGradient(
                                0.5f * (volume.getVoxel(x + 1, y, z) - volume.getVoxel(x - 1, y, z))
-                               , 0.5f * (volume.getVoxel(x, y + 1,z) - volume.getVoxel(x, y - 1, z))
+                               , 0.5f * (volume.getVoxel(x, y + 1, z) - volume.getVoxel(x, y - 1, z))
                                , 0.5f * (volume.getVoxel(x, y, z + 1) - volume.getVoxel(x, y, z - 1))
                        );
                     }
