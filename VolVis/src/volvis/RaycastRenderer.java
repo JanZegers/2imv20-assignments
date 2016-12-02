@@ -157,16 +157,19 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
     double getAlpha(double[] coord) {
         double baseIntensity = this.tfEditor2D.triangleWidget.baseIntensity;
         double radius = this.tfEditor2D.triangleWidget.radius;
+        double minGradient = this.tfEditor2D.triangleWidget.minGradient;
         double gradientMagnitude = this.getGradientMagnitudeInterpolated(coord);
         double voxelIntensity = this.getVoxelInterpolated(coord);
 
+        if (gradientMagnitude < minGradient)
+            return 0;
         if (gradientMagnitude == 0 && voxelIntensity == baseIntensity) {
             return 1;
         }
         if (gradientMagnitude > 0
                 && voxelIntensity - radius * gradientMagnitude <= baseIntensity
                 && baseIntensity <= voxelIntensity + radius * gradientMagnitude) {
-            return 1 - (1 / radius) * ((baseIntensity - voxelIntensity) / gradientMagnitude);
+            return 1 - (1 / radius) * Math.abs((baseIntensity - voxelIntensity) / gradientMagnitude);
         }
         return 0;
     }
@@ -311,12 +314,13 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         }
         double rayResolution = 1; // stepsize of t in raycast
 
+        // calculate size of ray
+        double raySize = Math.sqrt(Math.pow(volume.getDimX(), 2)
+                + Math.pow(volume.getDimY(), 2)
+                + Math.pow(volume.getDimZ(), 2));
+                
         for (int j = 0; j < image.getHeight() - resolution + 1; j += resolution) {
-            for (int i = 0; i < image.getWidth() - resolution + 1; i += resolution) {
-                // calculate size of ray
-                double raySize = Math.sqrt(Math.pow(volume.getDimX(), 2)
-                        + Math.pow(volume.getDimY(), 2)
-                        + Math.pow(volume.getDimZ(), 2));
+            for (int i = 0; i < image.getWidth() - resolution + 1; i += resolution) {                
                 // find maximum value along array
                 int rayMax = 0;
                 for (double t = -0.5 * raySize; t < 0.5 * raySize; t += rayResolution) {
@@ -395,7 +399,6 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         VectorMath.setVector(volumeCenter, volume.getDimX() / 2, volume.getDimY() / 2, volume.getDimZ() / 2);
 
         // sample on a plane through the origin of the volume data
-        double max = volume.getMaximum();
         TFColor color = new TFColor();
         TFColor voxelColor = new TFColor();
 
@@ -408,15 +411,15 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         }
         double rayResolution = 1; // stepsize of t in raycast
 
+        // calculate size of ray
+        double raySize = Math.sqrt(Math.pow(volume.getDimX(), 2)
+                + Math.pow(volume.getDimY(), 2)
+                + Math.pow(volume.getDimZ(), 2));
+                
         for (int j = 0; j < image.getHeight() - resolution + 1; j += resolution) {
-            for (int i = 0; i < image.getWidth() - resolution + 1; i += resolution) {
-                // calculate size of ray
-                double raySize = Math.sqrt(Math.pow(volume.getDimX(), 2)
-                        + Math.pow(volume.getDimY(), 2)
-                        + Math.pow(volume.getDimZ(), 2));
+            for (int i = 0; i < image.getWidth() - resolution + 1; i += resolution) {                
                 color.r = color.g = color.b = 0.0;
                 color.a = 1.0;
-                int val;
                 for (double t = -0.5 * raySize; t < 0.5 * raySize; t += rayResolution) {
                     pixelCoord[0] = uVec[0] * (i - imageCenter) + vVec[0] * (j - imageCenter)
                             + viewVec[0] * t + volumeCenter[0];
@@ -425,7 +428,7 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                     pixelCoord[2] = uVec[2] * (i - imageCenter) + vVec[2] * (j - imageCenter)
                             + viewVec[2] * t + volumeCenter[2];
 
-                    val = getVoxelInterpolated(pixelCoord);
+                    int val = getVoxelInterpolated(pixelCoord);
                     voxelColor = tFunc.getColor(val);
                     color.r = voxelColor.a * voxelColor.r + (1 - voxelColor.a) * color.r;
                     color.g = voxelColor.a * voxelColor.g + (1 - voxelColor.a) * color.g;
@@ -433,9 +436,9 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
                 }
 
                 // Make transparent if no color
-                if (color.r + color.g + color.b == 0.0) {
-                    color.a = 0.0;
-                }
+//                if (color.r + color.g + color.b == 0.0) {
+//                    color.a = 0.0;
+//                }
 
                 // BufferedImage expects a pixel color packed as ARGB in an int
                 int c_alpha = color.a <= 1.0 ? (int) Math.floor(color.a * 255) : 255;
@@ -499,12 +502,13 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         }
         double rayResolution = 1; // stepsize of t in raycast
 
+        // calculate size of ray
+        double raySize = Math.sqrt(Math.pow(volume.getDimX(), 2)
+                + Math.pow(volume.getDimY(), 2)
+                + Math.pow(volume.getDimZ(), 2));
+                
         for (int j = 0; j < image.getHeight() - resolution + 1; j += resolution) {
-            for (int i = 0; i < image.getWidth() - resolution + 1; i += resolution) {
-                // calculate size of ray
-                double raySize = Math.sqrt(Math.pow(volume.getDimX(), 2)
-                        + Math.pow(volume.getDimY(), 2)
-                        + Math.pow(volume.getDimZ(), 2));
+            for (int i = 0; i < image.getWidth() - resolution + 1; i += resolution) {                
                 color.r = color.g = color.b = 0.0;
                 color.a = 1.0;
                 for (double t = -0.5 * raySize; t < 0.5 * raySize; t += rayResolution) {

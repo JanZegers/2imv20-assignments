@@ -71,7 +71,7 @@ public class TransferFunction2DView extends javax.swing.JPanel {
             }
         }
         
-        int ypos = h;
+        int ypos = (int) (h - ed.triangleWidget.minGradient * h / ed.maxGradientMagnitude);
         int xpos = (int) (ed.triangleWidget.baseIntensity * binWidth);
         g2.setColor(Color.black);
         baseControlPoint = new Ellipse2D.Double(xpos - DOTSIZE / 2, ypos - DOTSIZE, DOTSIZE, DOTSIZE);
@@ -101,7 +101,7 @@ public class TransferFunction2DView extends javax.swing.JPanel {
                 
                 if (selectedBaseControlPoint) {
                     // restrain to horizontal movement
-                    dragEnd.setLocation(dragEnd.x, baseControlPoint.getCenterY());
+//                    dragEnd.setLocation(dragEnd.x, baseControlPoint.getCenterY());
                 } else if (selectedRadiusControlPoint) {
                     // restrain to horizontal movement and avoid radius getting 0
                     dragEnd.setLocation(dragEnd.x, radiusControlPoint.getCenterY());
@@ -115,11 +115,20 @@ public class TransferFunction2DView extends javax.swing.JPanel {
                 if (dragEnd.x >= getWidth()) {
                     dragEnd.x = getWidth() - 1;
                 }
+                
+                if (dragEnd.y < 8) {
+                    dragEnd.y = 8;
+                }
+                if (dragEnd.y > getHeight()) {
+                    dragEnd.y = getHeight();
+                }
+                
                 double w = getWidth();
                 double h = getHeight();
                 double binWidth = (double) w / (double) ed.xbins;
                 if (selectedBaseControlPoint) {
                     ed.triangleWidget.baseIntensity = (short) (dragEnd.x / binWidth);
+                    ed.triangleWidget.minGradient = (h - dragEnd.y) / h * ed.maxGradientMagnitude;
                 } else if (selectedRadiusControlPoint) {
                     ed.triangleWidget.radius = (dragEnd.x - (ed.triangleWidget.baseIntensity * binWidth))/(binWidth*ed.maxGradientMagnitude);
                 }
