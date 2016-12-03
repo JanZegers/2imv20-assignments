@@ -76,9 +76,12 @@ public class TransferFunction2DView extends javax.swing.JPanel {
         g2.setColor(Color.black);
         baseControlPoint = new Ellipse2D.Double(xpos - DOTSIZE / 2, ypos - DOTSIZE, DOTSIZE, DOTSIZE);
         g2.fill(baseControlPoint);
-        g2.drawLine(xpos, ypos, xpos - (int) (ed.triangleWidget.radius * binWidth * ed.maxGradientMagnitude), 0);
-        g2.drawLine(xpos, ypos, xpos + (int) (ed.triangleWidget.radius * binWidth * ed.maxGradientMagnitude), 0);
-        radiusControlPoint = new Ellipse2D.Double(xpos + (ed.triangleWidget.radius * binWidth * ed.maxGradientMagnitude) - DOTSIZE / 2,  0, DOTSIZE, DOTSIZE);
+        int radiusControlPointY = (int) (h - ed.triangleWidget.maxGradient * h / ed.maxGradientMagnitude);
+        g2.drawLine(xpos, ypos, xpos - (int) (ed.triangleWidget.radius * binWidth * ed.maxGradientMagnitude), radiusControlPointY);
+        g2.drawLine(xpos, ypos, xpos + (int) (ed.triangleWidget.radius * binWidth * ed.maxGradientMagnitude), radiusControlPointY);
+        // Horizontal line
+        g2.drawLine(xpos - (int) (ed.triangleWidget.radius * binWidth * ed.maxGradientMagnitude), radiusControlPointY, xpos + (int) (ed.triangleWidget.radius * binWidth * ed.maxGradientMagnitude), radiusControlPointY);
+        radiusControlPoint = new Ellipse2D.Double(xpos + (ed.triangleWidget.radius * binWidth * ed.maxGradientMagnitude) - DOTSIZE / 2,  radiusControlPointY, DOTSIZE, DOTSIZE);
         g2.fill(radiusControlPoint);
     }
     
@@ -100,28 +103,32 @@ public class TransferFunction2DView extends javax.swing.JPanel {
                 Point dragEnd = e.getPoint();
                 
                 if (selectedBaseControlPoint) {
-                    // restrain to horizontal movement
-//                    dragEnd.setLocation(dragEnd.x, baseControlPoint.getCenterY());
+                    if (dragEnd.x < 0) {
+                        dragEnd.x = 0;
+                    }
+                    if (dragEnd.y > getHeight()) {
+                        dragEnd.y = getHeight();
+                    }
+                    int radiusControlPointYPos = (int) (getHeight() - ed.triangleWidget.maxGradient * getHeight() / ed.maxGradientMagnitude);
+                    if (dragEnd.y < radiusControlPointYPos + DOTSIZE) {
+                        dragEnd.y = radiusControlPointYPos + DOTSIZE;
+                    }
                 } else if (selectedRadiusControlPoint) {
-                    // restrain to horizontal movement and avoid radius getting 0
-                    dragEnd.setLocation(dragEnd.x, radiusControlPoint.getCenterY());
                     if (dragEnd.x - baseControlPoint.getCenterX() <= 0) {
                         dragEnd.x = (int) (baseControlPoint.getCenterX() + 1);
                     }
-                }
-                if (dragEnd.x < 0) {
-                    dragEnd.x = 0;
-                }
-                if (dragEnd.x >= getWidth()) {
-                    dragEnd.x = getWidth() - 1;
+                    if (dragEnd.y < 0) {
+                        dragEnd.y = 0;
+                    }                    
+                    int baseControlPointYPos = (int) (getHeight() - ed.triangleWidget.minGradient * getHeight() / ed.maxGradientMagnitude);
+                    if (dragEnd.y > baseControlPointYPos - DOTSIZE) {
+                        dragEnd.y = baseControlPointYPos - DOTSIZE;
+                    }  
                 }
                 
-                if (dragEnd.y < 8) {
-                    dragEnd.y = 8;
-                }
-                if (dragEnd.y > getHeight()) {
-                    dragEnd.y = getHeight();
-                }
+                if (dragEnd.x > getWidth() - 1) {
+                    dragEnd.x = getWidth() - 1;
+                }                
                 
                 double w = getWidth();
                 double h = getHeight();
@@ -131,6 +138,7 @@ public class TransferFunction2DView extends javax.swing.JPanel {
                     ed.triangleWidget.minGradient = (h - dragEnd.y) / h * ed.maxGradientMagnitude;
                 } else if (selectedRadiusControlPoint) {
                     ed.triangleWidget.radius = (dragEnd.x - (ed.triangleWidget.baseIntensity * binWidth))/(binWidth*ed.maxGradientMagnitude);
+                    ed.triangleWidget.maxGradient = (h - dragEnd.y) / h * ed.maxGradientMagnitude;
                 }
                 ed.setSelectedInfo();
                 

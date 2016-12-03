@@ -48,7 +48,7 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
         labelMinVal.setText("0");
         labelMaxVal.setText(Integer.toString(maxIntensity));
 
-        triangleWidget = new TriangleWidget((short) (maxIntensity / 2), 0.2);
+        triangleWidget = new TriangleWidget((short) (maxIntensity / 2), 0.2, maxGradientMagnitude);
         setSelectedInfo();
     }
 
@@ -90,6 +90,7 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
         opacityLabel.setText(String.format("%.1f", triangleWidget.color.a));
         colorButton.setBackground(new Color((float) triangleWidget.color.r, (float) triangleWidget.color.g, (float) triangleWidget.color.b));
         minGradientLabel.setText(String.format("%.1f", triangleWidget.minGradient));
+        maxGradientLabel.setText(String.format("%.1f", triangleWidget.maxGradient));
     }
 
     /**
@@ -119,6 +120,8 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
         radiusLabel = new javax.swing.JTextField();
         jLabel8 = new javax.swing.JLabel();
         minGradientLabel = new javax.swing.JTextField();
+        jLabel9 = new javax.swing.JLabel();
+        maxGradientLabel = new javax.swing.JTextField();
 
         javax.swing.GroupLayout plotPanelLayout = new javax.swing.GroupLayout(plotPanel);
         plotPanel.setLayout(plotPanelLayout);
@@ -179,7 +182,7 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
         radiusLabel.setText("jTextField3");
         radiusLabel.setMinimumSize(new java.awt.Dimension(84, 28));
 
-        jLabel8.setText("Min. magnitude");
+        jLabel8.setText("Min magnitude");
 
         minGradientLabel.setEditable(false);
         minGradientLabel.setText("jTextField4");
@@ -187,6 +190,17 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
         minGradientLabel.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 minGradientLabelActionPerformed(evt);
+            }
+        });
+
+        jLabel9.setText("Max magnitude");
+
+        maxGradientLabel.setEditable(false);
+        maxGradientLabel.setText("jTextField5");
+        maxGradientLabel.setMinimumSize(new java.awt.Dimension(84, 28));
+        maxGradientLabel.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                maxGradientLabelActionPerformed(evt);
             }
         });
 
@@ -218,7 +232,7 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
                                     .addComponent(opacityLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 84, javax.swing.GroupLayout.PREFERRED_SIZE)
                                     .addComponent(intensityLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 84, javax.swing.GroupLayout.PREFERRED_SIZE)))
                             .addComponent(colorButton, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 75, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 73, Short.MAX_VALUE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 68, Short.MAX_VALUE)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                             .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                 .addGroup(layout.createSequentialGroup()
@@ -227,11 +241,14 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
                                     .addComponent(labelMaxVal))
                                 .addComponent(jLabel7))
                             .addGroup(layout.createSequentialGroup()
-                                .addComponent(jLabel8)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                    .addComponent(jLabel9)
+                                    .addComponent(jLabel8))
+                                .addGap(18, 18, 18)
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                     .addComponent(radiusLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 84, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(minGradientLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 84, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                    .addComponent(minGradientLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 84, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(maxGradientLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 84, javax.swing.GroupLayout.PREFERRED_SIZE))
                                 .addGap(61, 61, 61)))))
                 .addContainerGap())
         );
@@ -269,7 +286,10 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(colorButton, javax.swing.GroupLayout.PREFERRED_SIZE, 29, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, 29, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, 29, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(maxGradientLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(jLabel9)))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
     }// </editor-fold>//GEN-END:initComponents
@@ -307,19 +327,25 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
         // TODO add your handling code here:
     }//GEN-LAST:event_minGradientLabelActionPerformed
 
+    private void maxGradientLabelActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_maxGradientLabelActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_maxGradientLabelActionPerformed
+
     public class TriangleWidget {
 
         public short baseIntensity;
         public double radius;
         public TFColor color;
         public double minGradient;
+        public double maxGradient;
         
 
-        public TriangleWidget(short base, double r) {
+        public TriangleWidget(short base, double r, double m) {
             this.baseIntensity = base;
             this.radius = r;
             this.color = new TFColor(0.0, 204.0/255.0, 153.0/255.0, 0.3);
             this.minGradient = 0.0;
+            this.maxGradient = m;
         }
     }
 
@@ -334,10 +360,12 @@ public class TransferFunction2DEditor extends javax.swing.JPanel {
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
+    private javax.swing.JLabel jLabel9;
     private javax.swing.JLabel labelGradMax;
     private javax.swing.JLabel labelGradMin;
     private javax.swing.JLabel labelMaxVal;
     private javax.swing.JLabel labelMinVal;
+    private javax.swing.JTextField maxGradientLabel;
     private javax.swing.JTextField minGradientLabel;
     private javax.swing.JTextField opacityLabel;
     private javax.swing.JPanel plotPanel;

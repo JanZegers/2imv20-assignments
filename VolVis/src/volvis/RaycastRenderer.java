@@ -158,11 +158,13 @@ public class RaycastRenderer extends Renderer implements TFChangeListener {
         double baseIntensity = this.tfEditor2D.triangleWidget.baseIntensity;
         double radius = this.tfEditor2D.triangleWidget.radius;
         double minGradient = this.tfEditor2D.triangleWidget.minGradient;
-        double gradientMagnitude = this.getGradientMagnitudeInterpolated(coord);
+        double maxGradient = this.tfEditor2D.triangleWidget.maxGradient;
+        double gradientMagnitude = this.getGradientMagnitudeInterpolated(coord) - minGradient;
         double voxelIntensity = this.getVoxelInterpolated(coord);
 
-        if (gradientMagnitude < minGradient)
+        if (gradientMagnitude > maxGradient) {
             return 0;
+        }
         if (gradientMagnitude == 0 && voxelIntensity == baseIntensity) {
             return 1;
         }
