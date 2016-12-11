@@ -27,7 +27,7 @@ public class RaycastRendererPanel extends javax.swing.JPanel {
     public RaycastRendererPanel(RaycastRenderer renderer) {
         initComponents();
         this.renderer = renderer;
-        this.renderType = RenderType.MIP;
+        this.renderType = RenderType.SLICER;
         this.shade = false;
     }
 
